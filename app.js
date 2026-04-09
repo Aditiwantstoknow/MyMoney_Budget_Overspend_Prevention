@@ -1,10 +1,9 @@
-// 🔥 API URL
 const API = "https://c2adx0o6k7.execute-api.us-east-1.amazonaws.com";
 
 let expenses = [];
 let budgets = {};
 
-// ---------------- TAB SWITCH ----------------
+// ---------------- TAB ----------------
 function showTab(tab) {
     document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
     document.getElementById(tab).classList.add("active");
@@ -13,8 +12,10 @@ function showTab(tab) {
     event.target.classList.add("active");
 }
 
-// ---------------- ADD EXPENSE (CONNECTED TO BACKEND) ----------------
+// ---------------- ADD EXPENSE ----------------
 async function addExpense() {
+    console.log("Button clicked");
+
     let amount = document.getElementById("amount").value;
     let category = document.getElementById("category").value;
     let note = document.getElementById("note").value;
@@ -24,55 +25,75 @@ async function addExpense() {
         return;
     }
 
-    await fetch(`${API}/add-expense`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            amount,
-            category,
-            note
-        })
-    });
+    try {
+        let res = await fetch(`${API}/add-expense`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                amount: Number(amount),
+                category,
+                note
+            })
+        });
 
-    // clear inputs
-    document.getElementById("amount").value = "";
-    document.getElementById("note").value = "";
+        let data = await res.json();
+        console.log("API Response:", data);
 
-    loadExpenses();
+        // clear input
+        document.getElementById("amount").value = "";
+        document.getElementById("note").value = "";
+
+        loadExpenses();
+
+    } catch (err) {
+        console.error("ERROR:", err);
+    }
 }
 
 // ---------------- LOAD EXPENSES ----------------
 async function loadExpenses() {
-    let res = await fetch(`${API}/expenses`);
-    let data = await res.json();
+    try {
+        let res = await fetch(`${API}/expenses`);
+        let data = await res.json();
 
-    // 🔥 convert backend format → frontend format
-    expenses = data.map(e => ({
-        amount: e.amount,
-        category: e.category,
-        note: e.note,
-        date: `${e.date} ${e.time}`
-    }));
+        console.log("Expenses:", data);
 
-    renderTable();
-    updateStats();
-    updateCharts();
+        expenses = data.map(e => ({
+            amount: e.amount,
+            category: e.category,
+            note: e.note,
+            date: `${e.date} ${e.time}`
+        }));
+
+        renderTable();
+        updateStats();
+        updateCharts();
+
+    } catch (err) {
+        console.error(err);
+    }
 }
 
 // ---------------- LOAD BUDGETS ----------------
 async function loadBudgets() {
-    let res = await fetch(`${API}/budgets`);
-    let data = await res.json();
+    try {
+        let res = await fetch(`${API}/budgets`);
+        let data = await res.json();
 
-    budgets = {};
+        console.log("Budgets:", data);
 
-    data.forEach(b => {
-        budgets[b.category] = b.limit;
-    });
+        budgets = {};
+        data.forEach(b => {
+            budgets[b.category] = b.limit;
+        });
 
-    updateStats();
+        updateStats();
+
+    } catch (err) {
+        console.error(err);
+    }
 }
 
 // ---------------- TABLE ----------------
@@ -91,7 +112,7 @@ function renderTable() {
     });
 }
 
-// ---------------- BUDGET (LOCAL ONLY FOR NOW) ----------------
+// ---------------- BUDGET ----------------
 function setBudget(category, value) {
     budgets[category] = parseFloat(value);
     updateStats();
@@ -142,7 +163,7 @@ function updateCharts() {
     chart.update();
 }
 
-// ---------------- AUTO LOAD ----------------
+// ---------------- INIT ----------------
 window.onload = () => {
     loadExpenses();
     loadBudgets();
